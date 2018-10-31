@@ -12,19 +12,20 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.AmazonSQSAsync;
+import com.amazonaws.services.sqs.AmazonSQSAsyncClient;
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.buffered.AmazonSQSBufferedAsyncClient;
 import com.amazonaws.services.sqs.model.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonParser;
 import org.apache.catalina.Server;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s3.controller.S3Controller;
 
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -47,54 +48,40 @@ public class SQSOperationsServiceImpl implements SQSOperationsService {
             .build();
 
     public static void main(String[] args) {
-        readAndProcessMessages(myQueueUrl,sqsClient);
+       logger.info(readAndProcessMessages(myQueueUrl,sqsClient).toString());
 
 
     }
 
 
 
-    public static void readAndProcessMessages(String myQueueUrl,AmazonSQS sqsClient) {
+    public static List readAndProcessMessages(String myQueueUrl,AmazonSQS sqsClient) {
+        List<String> messagelist = new ArrayList<>();
+
         try {
-            final ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest()
-                            .withQueueUrl(myQueueUrl)
-                             .withWaitTimeSeconds(20)
-                            .withMessageAttributeNames("Body");
-            receiveMessageRequest.setMaxNumberOfMessages(10);
 
+            boolean flag = true;
 
-            final List<Message> messages = sqsClient.receiveMessage(receiveMessageRequest)
-                    .getMessages();
-            for (final Message message : messages) {
-                logger.info("Message");
-                logger.info("  MessageId:     "
-                        + message.getMessageId());
-                logger.info("  ReceiptHandle: "
-                        + message.getReceiptHandle());
-                logger.info("  MD5OfBody:     "
-                        + message.getMD5OfBody());
-                System.out.println("  Body:          "
-                        + message.getBody());
-                for (final Map.Entry<String, String> entry : message.getAttributes()
-                        .entrySet()) {
-                    logger.info("Attribute");
-                    logger.info("  Name:  " + entry
-                            .getKey());
-                    logger.info("  Value: " + entry
-                            .getValue());
-                    //JSONObject obj = new JSONObject(message.getBody());
-                    // JSONArray pageName = obj.getJSONObject("Records").getJSONArray("object");
-                    // logger.info(obj.toString());
+            while(flag)
+            {
+                ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl);
+                receiveMessageRequest.setMaxNumberOfMessages(10);
+                receiveMessageRequest.withMaxNumberOfMessages(10).withWaitTimeSeconds(20);
+                List<Message> messages = sqsClient.receiveMessage(receiveMessageRequest).getMessages();
 
-               /* JSONArray arr = pageName.getJSONArray("key");
-                for (int i = 0; i < arr.length(); i++)
+                for (Message message : messages)
                 {
-                    String post_id = arr.getJSONObject(i).getString("key");
-                }*/
-                }
+                    //   System.out.println("    Body:          " + message.getBody());
+                    messagelist.add( message.getBody());
 
+                    String messageReceiptHandle = message.getReceiptHandle();
+                    sqsClient.deleteMessage(new DeleteMessageRequest().withQueueUrl(myQueueUrl).withReceiptHandle(messageReceiptHandle));
+                }
+                if(messages.size()==0)
+                {
+                    flag = false;
+                }
             }
-                //sqsClient.deleteMessage(myQueueUrl, message.getReceiptHandle());
 
 
         } catch(final AmazonServiceException ase) {
@@ -113,16 +100,11 @@ public class SQSOperationsServiceImpl implements SQSOperationsService {
                     "being able to access the network.");
             logger.info("Error Message: " + ace.getMessage());
         }
-    }
-
-    public void run() {
-        while(true) {
-            ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl).withMaxNumberOfMessages(10).withWaitTimeSeconds(3);
-            List<Message> messages = sqsClient.receiveMessage(receiveMessageRequest).getMessages();
-            // process messages
-            // delete messages
+        finally {
+            return messagelist;
         }
     }
+
 
 }
 
