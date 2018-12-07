@@ -5,6 +5,6 @@ package s3.service;
  */
 public interface S3OperationsService {
     String  GenerateUrlToDownload(String bucketName,String key);
-    String  GenerateUrlToUpload(String bucketName,String key,String tag);
+    String  GenerateUrlToUpload(String bucketName,String key,String tag,String contentType);
 
 }

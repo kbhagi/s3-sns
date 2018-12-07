@@ -1,21 +1,22 @@
-package s3.service;
+package s3.config;
 
 import com.amazon.sqs.javamessaging.SQSConnectionFactory;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.listener.DefaultMessageListenerContainer;
-
+import s3.service.SQSListener;
 
 
 /**
  * Created by root on 31/10/18.
  */
+@Configuration
 public class JMSSQSConfig {
 
     @Value("${sqs.queue.endpoint}")
@@ -37,7 +38,6 @@ public class JMSSQSConfig {
     public DefaultMessageListenerContainer jmsListenerContainer() {
 
         SQSConnectionFactory sqsConnectionFactory = SQSConnectionFactory.builder()
-                .withAWSCredentialsProvider(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey,secretKey)))
                 .withEndpoint(endpoint)
                 .withAWSCredentialsProvider(awsCredentialsProvider)
                 .withNumberOfMessagesToPrefetch(10).build();

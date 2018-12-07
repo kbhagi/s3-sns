@@ -11,7 +11,6 @@ import com.amazonaws.services.s3.Headers;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
-import lombok.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -80,7 +79,7 @@ public class S3OperationsServiceImpl implements S3OperationsService {
     }
 
     @Override
-    public String GenerateUrlToUpload(String bucketName, String key, String tag) {
+    public String GenerateUrlToUpload(String bucketName, String key, String tag,String contentType) {
         String uploadUrl = null;
         if ((bucketName != null && !bucketName.trim().isEmpty()) && (key != null & !key.trim().isEmpty()) && (tag != null & !tag.trim().isEmpty())) {
             try {
@@ -93,6 +92,7 @@ public class S3OperationsServiceImpl implements S3OperationsService {
                 expiration.setTime(milliSeconds);
                 GeneratePresignedUrlRequest generatePresignedUrlRequest = new GeneratePresignedUrlRequest(bucketName, key);
                 generatePresignedUrlRequest.setMethod(HttpMethod.PUT);
+                generatePresignedUrlRequest.setContentType(contentType);
                 generatePresignedUrlRequest.setExpiration(expiration);
                 generatePresignedUrlRequest.putCustomRequestHeader(Headers.S3_TAGGING, tag);
                 URL url = s3.generatePresignedUrl(generatePresignedUrlRequest);
